@@ -3,7 +3,7 @@ kotlin = "2.4.10"
 junit = "5.11.0"
 junit-platform = "1.11.0"
 maven-publish = "0.37.0"
-sdl-kmp = "1.0.7"
+sdl-kmp = "1.0.8"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

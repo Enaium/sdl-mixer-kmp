@@ -75,11 +75,6 @@ elseif(WIN32)
     set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(SDL_TESTS OFF CACHE BOOL "" FORCE)
     set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
-    # SDL provides a JNI_OnLoad stub for non-Android platforms
-    # (src/core/SDL_core_unsupported.c) which would collide with the one in
-    # jni_mixer.cpp; exclude that file via an injected project include.
-    set(SDL_KMP_JNI_STUB_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(CMAKE_PROJECT_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/sdl_windows_project_include.cmake")
     add_subdirectory(${SDL_SOURCE_DIR} SDL)
     add_subdirectory(${SDLMIXER_SOURCE_DIR} SDL_mixer)
 else()
@@ -152,8 +147,11 @@ elseif(UNIX AND NOT APPLE)
     endif()
 elseif(WIN32)
     # Fallback (no SDL_JNI_DLL provided): SDL3 was compiled in the
-    # configuration step above; link it.
+    # configuration step above; link it. SDL's dynapi stub also defines a
+    # JNI_OnLoad; the first definition (ours, in jni_mixer.cpp) wins with
+    # --allow-multiple-definition.
     target_link_libraries(sdl_mixer_jni PRIVATE SDL3-static)
+    target_link_options(sdl_mixer_jni PRIVATE -Wl,--allow-multiple-definition)
 endif()
 
 if(WIN32)

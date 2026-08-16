@@ -13,10 +13,7 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        // Local first: locally published sdl-kmp builds (mavenLocal) override
-        // the published artifacts while developing.
-        mavenLocal()
-        google()
+         google()
         mavenCentral()
     }
 }
