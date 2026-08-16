@@ -1,0 +1,20 @@
+package = sdl_mixer
+headers = SDL3_mixer/SDL_mixer.h
+compilerOpts = -std=c11 -DSDL_MAIN_HANDLED
+
+# Platform-specific linker options (suffixes are Kotlin/Native family names,
+# lowercase: osx/ios/tvos/linux/mingw). These are baked into the produced
+# klib and applied when the consumer's final binary is linked.
+#
+# Only the SDL_mixer-specific requirements are listed here; the SDL3 system
+# libraries/frameworks come from the sdl-kmp klib, which the consumer always
+# links (the sdl-mixer-kmp bindings use the cn.enaium.sdl types).
+#
+# The vendored decoders (stb_vorbis, dr_flac, dr_mp3, timidity, ...) use the
+# C math library; the SDL3 ones (pthreads, dl) come from sdl-kmp.
+linkerOpts.osx =
+linkerOpts.ios =
+linkerOpts.tvos =
+linkerOpts.linux = -lm -ldl -lpthread
+linkerOpts.mingw =
+linkerOpts.android = -landroid -llog -lm
