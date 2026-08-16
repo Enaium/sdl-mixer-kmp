@@ -33,21 +33,6 @@ if(NOT DEFINED SDLMIXER_SOURCE_DIR)
     set(SDLMIXER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../includes/SDL_mixer")
 endif()
 
-if(WIN32 AND DEFINED SDL_JNI_DLL AND EXISTS "${SDL_JNI_DLL}")
-    # SDL3::Headers provides the include directory; SDL3::SDL3 is only used
-    # by SDL_mixer's CMake for its find_package check.
-    add_library(SDL3::Headers INTERFACE IMPORTED)
-    set_target_properties(SDL3::Headers PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${SDL_SOURCE_DIR}/include")
-    add_library(SDL3::SDL3 INTERFACE IMPORTED)
-else()
-    # Fake SDL3 targets so SDL_mixer's CMake configures without building SDL3.
-    add_library(SDL3::Headers INTERFACE IMPORTED)
-    set_target_properties(SDL3::Headers PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${SDL_SOURCE_DIR}/include")
-    add_library(SDL3::SDL3 INTERFACE IMPORTED)
-endif()
-
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(SDLMIXER_VENDORED ON CACHE BOOL "" FORCE)
 set(SDLMIXER_INSTALL OFF CACHE BOOL "" FORCE)
@@ -68,11 +53,49 @@ set(SDLMIXER_OPUS OFF CACHE BOOL "" FORCE)
 set(SDLMIXER_VORBIS_VORBISFILE OFF CACHE BOOL "" FORCE)
 set(SDLMIXER_WAVPACK OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(${SDLMIXER_SOURCE_DIR} SDL_mixer)
+if(WIN32 AND DEFINED SDL_JNI_DLL AND EXISTS "${SDL_JNI_DLL}")
+    # SDL3::Headers provides the include directory; SDL3::SDL3 is only used
+    # by SDL_mixer's CMake for its find_package check. SDL3 itself is not
+    # compiled; its symbols are resolved from libsdl_jni.dll.
+    add_library(SDL3::Headers INTERFACE IMPORTED)
+    set_target_properties(SDL3::Headers PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SDL_SOURCE_DIR}/include")
+    add_library(SDL3::SDL3 INTERFACE IMPORTED)
+    add_subdirectory(${SDLMIXER_SOURCE_DIR} SDL_mixer)
+elseif(WIN32)
+    # Fallback (no SDL_JNI_DLL provided): compile SDL3 itself. SDL's own CMake
+    # creates the SDL3::Headers / SDL3::SDL3 alias targets, so the fake
+    # targets must NOT be created here (an existing target would make SDL's
+    # add_library(ALIAS) fail). SDL_mixer is added after SDL so its
+    # `if(NOT TARGET SDL3::Headers OR NOT TARGET SDL3::SDL3)` check skips the
+    # find_package call.
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+    set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+    add_subdirectory(${SDL_SOURCE_DIR} SDL)
+    add_subdirectory(${SDLMIXER_SOURCE_DIR} SDL_mixer)
+else()
+    # Fake SDL3 targets so SDL_mixer's CMake configures without building SDL3.
+    # The SDL3 symbols are resolved at runtime from libsdl_jni.
+    add_library(SDL3::Headers INTERFACE IMPORTED)
+    set_target_properties(SDL3::Headers PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SDL_SOURCE_DIR}/include")
+    add_library(SDL3::SDL3 INTERFACE IMPORTED)
+    add_subdirectory(${SDLMIXER_SOURCE_DIR} SDL_mixer)
+endif()
 
-add_library(sdl_mixer_jni SHARED
-    jni_mixer.cpp
-)
+# CPU-feature shims (SDL_HasSSE / SDL_HasNEON) are only needed when SDL3 is
+# not compiled into this library; the fallback build above compiles SDL3,
+# which provides them itself.
+set(SDLMIXER_JNI_SOURCES jni_mixer.cpp)
+if(NOT (WIN32 AND NOT DEFINED SDL_JNI_DLL))
+    list(APPEND SDLMIXER_JNI_SOURCES sdl_mixer_cpu_compat.c)
+endif()
+
+add_library(sdl_mixer_jni SHARED ${SDLMIXER_JNI_SOURCES})
 set_target_properties(sdl_mixer_jni PROPERTIES OUTPUT_NAME sdl_mixer_jni)
 
 # SDL_mixer.h redefines main on Windows (via SDL_main.h); this is a library,
@@ -115,14 +138,8 @@ elseif(UNIX AND NOT APPLE)
     # SDL3 symbols are resolved from libsdl_jni at dlopen time.
     target_link_libraries(sdl_mixer_jni PRIVATE -lm -ldl -lpthread)
 elseif(WIN32)
-    # Fallback (no SDL_JNI_DLL provided): compile and link SDL3 itself.
-    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-    set(SDL_STATIC ON CACHE BOOL "" FORCE)
-    set(SDL_TEST OFF CACHE BOOL "" FORCE)
-    set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(SDL_TESTS OFF CACHE BOOL "" FORCE)
-    set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
-    add_subdirectory(${SDL_SOURCE_DIR} SDL)
+    # Fallback (no SDL_JNI_DLL provided): SDL3 was compiled in the
+    # configuration step above; link it.
     target_link_libraries(sdl_mixer_jni PRIVATE SDL3-static)
 endif()
 

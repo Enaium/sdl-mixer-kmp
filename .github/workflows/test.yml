@@ -78,7 +78,7 @@ jobs:
       - name: Run example (JVM, headless)
         run: >
           SDL_VIDEO_DRIVER=dummy ./gradlew --no-daemon
-          :examples:mixer_device:jvmRun --args=""
+          :examples:mixer_device:jvmRun
 
       - name: Run example (macosArm64, headless)
         run: >
