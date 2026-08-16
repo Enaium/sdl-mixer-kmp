@@ -106,6 +106,8 @@ val buildJniLibrary by tasks.registering(Exec::class) {
     inputs.files(
         rootProject.file("jni/CMakeLists.txt"),
         rootProject.file("jni/jni_mixer.cpp"),
+        rootProject.file("jni/sdl_mixer_cpu_compat.c"),
+        rootProject.file("jni/sdl_windows_project_include.cmake"),
     )
     inputs.dir(rootProject.file("includes/SDL_mixer"))
     inputs.dir(rootProject.file("includes/SDL"))

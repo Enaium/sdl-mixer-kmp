@@ -8,6 +8,7 @@
  * the sdl-kmp project), which the sdl-kmp JVM artifact loads first.
  */
 import org.gradle.internal.os.OperatingSystem
+import java.util.zip.ZipFile
 
 plugins {
     `java-library`
@@ -70,6 +71,32 @@ val canBuildHere = hostIsLinuxArm64 || (hostIsLinuxX64 && hasAarch64CrossToolcha
 val nativeOutputDir = layout.buildDirectory.dir("jni-native/$classifier")
 val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 
+// The sdl-kmp JNI artifact bundles libsdl_jni.so; linking it into
+// libsdl_mixer_jni creates a DT_NEEDED entry so the SDL3 symbols resolve
+// regardless of how the JVM loaded libsdl_jni (RTLD_LOCAL would otherwise
+// hide them from global symbol lookups).
+val sdlKmpJni: Configuration by configurations.creating {
+    isTransitive = false
+}
+
+dependencies {
+    sdlKmpJni("cn.enaium.sdl:sdl-kmp-jni-jvm-linux-aarch64:${libs.versions.sdl.kmp.get()}")
+}
+
+fun extractSdlJniLib(): File {
+    val target = layout.buildDirectory.file("sdl-jni/libsdl_jni.so").get().asFile
+    if (target.isFile) return target
+    val jar = sdlKmpJni.single { it.extension == "jar" }
+    val entryName = "cn/enaium/sdl/native/linux-aarch64/libsdl_jni.so"
+    target.parentFile.mkdirs()
+    ZipFile(jar).use { zf ->
+        val entry = zf.getEntry(entryName)
+            ?: error("$entryName not found in ${jar.name}")
+        zf.getInputStream(entry).use { input -> target.outputStream().use { input.copyTo(it) } }
+    }
+    return target
+}
+
 val configureJniLibrary by tasks.registering(Exec::class) {
     group = "build"
     description = "cmake-configures libsdl_mixer_jni for $classifier."
@@ -83,12 +110,14 @@ val configureJniLibrary by tasks.registering(Exec::class) {
     workingDir = buildDir
     val javaHome = System.getProperty("java.home") ?: System.getenv("JAVA_HOME") ?: ""
     val jniInclude = if (javaHome.isNotEmpty()) "$javaHome/include" else ""
+    val sdlJniLib = extractSdlJniLib()
     val args = mutableListOf(
         cmakeExecutable,
         rootProject.file("jni").absolutePath,
         "-DCMAKE_BUILD_TYPE=Release",
         "-DJNI_INCLUDE_DIR=$jniInclude",
         "-DJNI_INCLUDE_DIR_PLATFORM=$jniInclude/linux",
+        "-DSDL_JNI_DLL=${sdlJniLib.absolutePath}",
         "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${outDir.absolutePath}",
     )
     if (hostIsLinuxX64) {
@@ -115,6 +144,8 @@ val buildJniLibrary by tasks.registering(Exec::class) {
     inputs.files(
         rootProject.file("jni/CMakeLists.txt"),
         rootProject.file("jni/jni_mixer.cpp"),
+        rootProject.file("jni/sdl_mixer_cpu_compat.c"),
+        rootProject.file("jni/sdl_windows_project_include.cmake"),
     )
     inputs.dir(rootProject.file("includes/SDL_mixer"))
     inputs.dir(rootProject.file("includes/SDL"))
