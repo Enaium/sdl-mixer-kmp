@@ -2,12 +2,23 @@ name: Publish
 
 "on":
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Runner group to publish (all, or one of macos/linux/android/windows)'
+        type: choice
+        options:
+          - all
+          - macos
+          - linux
+          - android
+          - windows
+        default: all
 
 # Publishes every artifact from the runner that can build it. Maven Central
 # coordinates are immutable, so each publication is produced by exactly one
 # runner:
 #
-#   macos-14      -> :sdl-mixer-kmp metadata + jvm + all Apple target klibs
+#   macos-latest  -> :sdl-mixer-kmp metadata + jvm + all Apple target klibs
 #                    (macos/ios/tvos, each with the embedded SDL_mixer static
 #                    library built on this runner) + the
 #                    sdl-mixer-kmp-jni-jvm-darwin-{aarch64,x86_64} artifacts
@@ -25,7 +36,9 @@ name: Publish
 # consumers can resolve the artifact.
 #
 # Trigger: run manually via the Actions tab. The published version is the
-# one in build.gradle.kts (allprojects.version).
+# one in build.gradle.kts (allprojects.version). Set `target` to publish a
+# single runner group; this retries one failed job without re-deploying the
+# coordinates the other groups already published.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   MAVEN_CENTRAL_USERNAME   Sonatype Central Portal user-token username
@@ -37,7 +50,8 @@ name: Publish
 jobs:
   publish-macos:
     name: Publish macOS (metadata + jvm + Apple klibs)
-    runs-on: macos-14
+    if: inputs.target == 'all' || inputs.target == 'macos'
+    runs-on: macos-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -91,6 +105,7 @@ jobs:
 
   publish-linux:
     name: Publish Linux (linuxX64/linuxArm64/mingwX64 klibs)
+    if: inputs.target == 'all' || inputs.target == 'linux'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -148,6 +163,7 @@ jobs:
 
   publish-android:
     name: Publish Android (androidNative klibs)
+    if: inputs.target == 'all' || inputs.target == 'android'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -197,6 +213,7 @@ jobs:
 
   publish-windows:
     name: Publish Windows (windows-x86_64 JNI artifact)
+    if: inputs.target == 'all' || inputs.target == 'windows'
     runs-on: windows-latest
     steps:
       - name: Check out repository
