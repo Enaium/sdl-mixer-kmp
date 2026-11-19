@@ -24,8 +24,8 @@ name: Publish
 # the per-target klib modules, so all of them must be published before
 # consumers can resolve the artifact.
 #
-# Trigger: run manually via the Actions tab. The version is fixed at 1.0.0
-# (build.gradle.kts).
+# Trigger: run manually via the Actions tab. The published version is the
+# one in build.gradle.kts (allprojects.version).
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   MAVEN_CENTRAL_USERNAME   Sonatype Central Portal user-token username

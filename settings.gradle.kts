@@ -21,7 +21,7 @@ dependencyResolutionManagement {
 rootProject.name = "sdl-mixer-kmp"
 
 // sdl-kmp provides the SDL3 bindings sdl-mixer-kmp builds on; the published
-// artifacts (cn.enaium.sdl:sdl-kmp:1.0.7) are resolved from the repositories
+// artifacts (cn.enaium.sdl:sdl-kmp:1.0.14-fixed.3.4.18) are resolved from the repositories
 // declared above (see the `api` dependency in sdl-mixer-kmp/build.gradle.kts).
 
 include(":sdl-mixer-kmp")

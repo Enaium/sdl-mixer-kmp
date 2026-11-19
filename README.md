@@ -27,7 +27,7 @@ build is self-contained.
 
 ## Usage
 
-The published version requires [sdl-kmp](https://github.com/Enaium/sdl-kmp) `1.0.7` (it is an `api` dependency, pulled in automatically).
+The published version requires [sdl-kmp](https://github.com/Enaium/sdl-kmp) `1.0.14-fixed.3.4.18` (it is an `api` dependency, pulled in automatically).
 
 `build.gradle.kts`:
 
@@ -35,7 +35,7 @@ The published version requires [sdl-kmp](https://github.com/Enaium/sdl-kmp) `1.0
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("cn.enaium.sdl:sdl-mixer-kmp:1.0.0")
+            implementation("cn.enaium.sdl:sdl-mixer-kmp:1.0.1-fixed.3.2.4")
         }
     }
 }
@@ -136,7 +136,7 @@ SDL_VIDEO_DRIVER=dummy ./gradlew :examples:mixer_device:jvmRun
 Both workflows are **manually triggered** (Actions tab):
 
 - **`test.yml`** — local Maven publish + test: publishes every artifact the runner can build to Maven Local (no signing, no secrets), runs the JVM/native tests and the example headless. Use this to verify a change before publishing.
-- **`publish.yml`** — formal Maven Central release: publishes the metadata + JVM module, all target klibs and the JNI artifacts to Maven Central, signed with PGP. The version is fixed at `1.0.0` (build.gradle.kts). Requires the repository secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`, `SIGNING_KEY_ID` and `SIGNING_PASSWORD`.
+- **`publish.yml`** — formal Maven Central release: publishes the metadata + JVM module, all target klibs and the JNI artifacts to Maven Central, signed with PGP. The published version is the one in build.gradle.kts (allprojects.version). Requires the repository secrets `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`, `SIGNING_KEY_ID` and `SIGNING_PASSWORD`.
 
 ## License
 
